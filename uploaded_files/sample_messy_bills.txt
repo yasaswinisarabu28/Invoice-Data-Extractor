@@ -1,0 +1,401 @@
+SAMPLE MESSY BILLS DATASET
+===========================
+
+NOTE:
+These are synthetic sample bills created for testing a document-understanding / messy-bill extraction project.
+They intentionally contain inconsistent formatting, missing fields, abbreviations, OCR-like errors, mixed date formats, and irregular spacing.
+
+-------------------------
+BILL 001
+-------------------------
+MARTPLUS SUPER MARKET
+Bill No: MP-10482
+Date: 12/08/2026   Time 18:42
+Cust: Yash
+--------------------------------
+1 Milk 1L              64
+2 Bread               45.00
+1 Eggs 12pcs           78
+1 Rice 5kg            312
+1 Soap x2              96
+--------------------------------
+Subtotal             595
+Disc                 -20
+GST                   18.50
+TOTAL                 593.50
+Paid: UPI
+Thank you!!
+
+
+-------------------------
+BILL 002
+-------------------------
+SRI LAKSHMI GENERAL STORES
+Inv# SLG/8841
+08-14-26
+--------------------------------
+Biscuits x3       30
+Cola 750ml        45
+Toothpaste        92
+Shampoo           155
+Cooking Oil 1L    148
+--------------------------------
+sub ttl 470
+GST 5%             17.10
+Grand Total       487.10
+Cash               500
+Change              12.90
+
+
+-------------------------
+BILL 003
+-------------------------
+MEDI CARE PHARMACY
+Receipt: MC 23917
+Date 2026/08/16
+Patient: WALK-IN
+--------------------------------
+Paracetamol 500mg  10 tab    28
+Vitamin-C          1 box     120
+Bandage            2 pcs      20
+Antiseptic liquid  100ml     72
+--------------------------------
+Amount: 240
+CGST 2.5%: 6
+SGST 2.5%: 6
+Net Amt: 252
+Mode: CARD
+
+
+-------------------------
+BILL 004
+-------------------------
+HOTEL ANNAPURNA
+Kothapeta
+Bill No 771
+Dt: 17.8.26  8:35 PM
+--------------------------------
+Idly       2       40
+Dosa       1       55
+Coffee     2       40
+Vada       2       30
+--------------------------------
+food total = 165
+CGST 2.5  = 4.13
+SGST 2.5  = 4.13
+round off  -0.26
+PAYABLE       173.00
+Paid Cash
+
+
+-------------------------
+BILL 005
+-------------------------
+ELECTRO WORLD
+Invoice No: EW-2026-119
+Date: 18 Aug 26
+Customer: WALK IN
+--------------------------------
+USB Cable        2 x 199 = 398
+Mouse            1 x 499 = 499
+Keyboard         1 x 899 = 899
+HDMI Cable       1 x 349 = 349
+--------------------------------
+Items Total              2145
+Coupon: SAVE100         -100
+Taxable Value            2045
+GST @18%                 368.10
+TOTAL                   2413.10
+Paid by UPI
+
+
+-------------------------
+BILL 006
+-------------------------
+FRESH MART
+B.No: FM55190
+19/08/26
+--------------------------------
+Tomato 1.5 kg          72.00
+Potato 2kg             68
+Onion 1 kg             44
+Banana 1 dozen         55
+Curd 500g              38
+Bread                  42
+--------------------------------
+Total                  319
+GST                     0
+Paid                  320
+Change                   1
+
+
+-------------------------
+BILL 007
+-------------------------
+CITY FUEL POINT
+Receipt no CFP889302
+19-08-2026  09:14
+Vehicle: AP XX XX 1234
+--------------------------------
+PETROL
+Qty: 12.47 L
+Rate: 106.25/L
+--------------------------------
+AMOUNT = 1324.94
+Cash Paid = 1400
+Change = 75.06
+
+
+-------------------------
+BILL 008
+-------------------------
+ROYAL FASHION
+INV RF/26/883
+20-08-2026
+--------------------------------
+T-Shirt        799
+Jeans         1499
+Socks x2        198
+Cap             299
+--------------------------------
+MRP TOTAL     2795
+DISCOUNT       15% = -419.25
+NET            2375.75
+GST 5%          118.79
+TOTAL          2494.54
+CARD
+
+
+-------------------------
+BILL 009
+-------------------------
+QUICK BITES
+Order: QB-1209
+Date 21/8/26
+--------------------------------
+Burger       129
+Fries         89
+Coke          49
+Burger       129
+Extra cheese  30
+--------------------------------
+SubTotal     426
+Tax          21.30
+Delivery     40
+Total        487.30
+UPI TXN: 8H72K91
+
+
+-------------------------
+BILL 010
+-------------------------
+HOME HARDWARE & ELECTRICALS
+Bill: HH-77182
+22 Aug 2026
+--------------------------------
+LED BULB 9W       4 pcs    320
+Switch            3 pcs    135
+Socket            2 pcs    110
+Extension Board   1        450
+Insulation Tape   2 pcs     70
+--------------------------------
+Subtotal                 1085
+GST 18%                  195.30
+TOTAL                   1280.30
+Paid: Cash
+
+
+-------------------------
+BILL 011
+-------------------------
+CITY CARE CLINIC
+Receipt No CC-5602
+Date 23/08/2026
+--------------------------------
+Consultation               500
+Blood Test                 350
+Injection                   80
+--------------------------------
+TOTAL                      930
+Paid UPI
+Ref: 1234567890
+
+
+-------------------------
+BILL 012
+-------------------------
+GROCERY EXPRESS
+Invoice GE8891
+24-08-26
+--------------------------------
+Atta 5kg                 280
+Dal 1kg                  145
+Sugar 2kg                110
+Salt 1kg                   25
+Tea Powder 250g           98
+Biscuits x2                60
+--------------------------------
+Total                    718
+Discount                  18
+Payable                  700
+Paid CASH
+
+
+-------------------------
+BILL 013
+-------------------------
+MOBILE ZONE
+INV: MZ-5567
+25/08/2026
+--------------------------------
+Screen Guard       1      199
+Phone Cover        1      349
+Type-C Cable       1      299
+Charger            1      799
+--------------------------------
+subtotal                 1646
+GST 18%                  296.28
+TOTAL                    1942.28
+Payment: UPI
+
+
+-------------------------
+BILL 014
+-------------------------
+GREEN LEAF RESTAURANT
+Table: 07
+Bill No: GL 447
+25.08.26
+--------------------------------
+Veg Meals           2     300
+Paneer Curry        1     160
+Water Bottle        2      40
+Ice Cream           2     120
+--------------------------------
+Food Amt                 620
+CGST 2.5%                 15.50
+SGST 2.5%                 15.50
+Service Charge            31
+TOTAL                    682
+Paid Card
+
+
+-------------------------
+BILL 015
+-------------------------
+SHREE TRADERS
+BILL NO ST/00991
+Date: 26/08/2026
+--------------------------------
+Pen 10pcs                 100
+Notebook A4 5pcs          275
+Marker 3pcs                90
+File Folder 4pcs          120
+Stapler                     85
+Staples                     35
+--------------------------------
+Gross                     705
+Discount                   55
+Taxable                    650
+GST 18%                   117
+Grand Total               767
+Cash
+
+
+-------------------------
+BILL 016
+-------------------------
+MIXED / OCR-STYLE BILL
+Shop: NEW STAR STORES
+BillNo NS-7810
+Dt 27-8-26
+--------------------------------
+1x Maggi .......... 14
+2x Biscut ......... 30
+1 x Detergnt ...... 82
+3x Soap ........... 96
+Milk 1L ........... 61
+Chips ............. 20
+--------------------------------
+subtotl .......... 303
+gst ............... 10.50
+totl ............. 313.50
+paid UPI
+
+
+-------------------------
+BILL 017
+-------------------------
+UNKNOWN SHOP
+Invoice: 88271
+Date: 28/08/26
+--------------------------------
+ITEM                     AMT
+Laptop Bag               1299
+Notebook                  120
+Pen Drive 64GB            699
+Calculator                450
+--------------------------------
+TOTAL                   2568
+Received                 2600
+Balance                    32
+
+
+-------------------------
+BILL 018
+-------------------------
+SUNRISE PHARMACY
+Rcpt No SP-10081
+29 Aug 2026
+--------------------------------
+Cough Syrup 100ml       115
+ORS 5 sachets             60
+Cotton Roll               45
+Thermometer              180
+--------------------------------
+Subtotal                 400
+GST 12%                   48
+TOTAL                    448
+Paid Cash
+
+
+-------------------------
+BILL 019
+-------------------------
+MOTHER'S KITCHEN
+Invoice MK-203
+30/08/26
+--------------------------------
+Rice Plate                90
+Chapati x4                40
+Dal                        70
+Curd                       30
+Tea x2                     40
+--------------------------------
+Total                     270
+Tax                          0
+Paid                       300
+Change                      30
+
+
+-------------------------
+BILL 020
+-------------------------
+SUPER VALUE
+Receipt SV 920182
+31-08-2026
+--------------------------------
+Detergent 2kg             210
+Floor Cleaner 1L          125
+Dishwash Liquid            95
+Tissue Pack x2            110
+Garbage Bags               80
+--------------------------------
+Item Total                620
+Discount                   50
+GST                        68.40
+Amount Due                638.40
+Payment CARD
+
+
+END OF SAMPLE DATASET

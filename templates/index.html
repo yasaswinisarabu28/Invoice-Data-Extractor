@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice Data Extractor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+<div id="sparkles" class="sparkles"></div>
+
+<div class="page">
+
+  <header class="page__header">
+    <h1>Invoice Data Extractor</h1>
+    <p class="page__quote">From cluttered receipts to clean, structured truth — instantly.</p>
+  </header>
+
+  <div id="dropzone" class="dropzone" tabindex="0">
+    <div class="dropzone__icon">🧾</div>
+    <p class="dropzone__label">Drag &amp; drop invoices here, or click to browse</p>
+    <p class="dropzone__hint">Accepts .pdf and .txt &nbsp;·&nbsp; multiple files at once</p>
+    <input type="file" id="file-input" accept=".pdf,.txt" multiple hidden>
+  </div>
+
+  <div id="batch-status" class="batch-status"></div>
+
+  <div id="results" class="results"></div>
+
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

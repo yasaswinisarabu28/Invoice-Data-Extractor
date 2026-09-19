@@ -1,0 +1,21 @@
+Sri Lakshmi Traders
+Door No 5-6-7, RTC Bus Stand Road, Guntur, AP - 522002
+Phone: 9123456780
+
+RECEIPT
+Receipt No: RC-889
+Date: 15 September 2026
+Customer: P. Naveen Kumar
+
+Item                          Qty    Rate     Amount
+Rice Bag 26kg                 1      1450     1450
+Sunflower Oil 1L               4      165      660
+Toor Dal 1kg                    2      140      280
+Sugar 1kg                        3      45       135
+
+Subtotal: 2525
+Packing Charge: 20
+Tax (CGST+SGST 2.5%): 63.63
+Grand Total: 2608.63
+
+Thank you for shopping with us.

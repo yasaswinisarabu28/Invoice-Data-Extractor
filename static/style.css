@@ -1,0 +1,312 @@
+:root {
+  --black: #0A0908;
+  --black-deep: #050504;
+  --card: #16140F;
+  --card-light: #1D1A14;
+  --gold: #D4AF37;
+  --gold-bright: #F0D273;
+  --gold-dim: rgba(212, 175, 55, 0.35);
+  --cream: #F2ECDD;
+  --success: #7FB069;
+  --error: #E0684F;
+  --line: rgba(212, 175, 55, 0.16);
+}
+
+* { box-sizing: border-box; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+body {
+  margin: 0;
+  background: var(--black);
+  color: var(--cream);
+  font-family: 'IBM Plex Sans', sans-serif;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+h1, h2 { font-family: 'Fraunces', serif; margin: 0; }
+
+/* --- Sparkle background --- */
+
+.sparkles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 30% 0%, rgba(212,175,55,0.06), transparent 55%),
+              radial-gradient(ellipse at 80% 90%, rgba(212,175,55,0.05), transparent 55%);
+}
+
+.sparkle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--gold-bright);
+  box-shadow: 0 0 6px 1px var(--gold-bright);
+  opacity: 0;
+  animation: twinkle 4s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.6); }
+  50% { opacity: 0.9; transform: scale(1.4); }
+}
+
+/* --- Page layout --- */
+
+.page {
+  position: relative;
+  z-index: 1;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 60px 24px 90px;
+}
+
+.page__header {
+  text-align: center;
+  margin-bottom: 44px;
+}
+
+.page__header h1 {
+  font-size: clamp(2.1rem, 4.4vw, 3rem);
+  font-weight: 600;
+  color: var(--gold-bright);
+  letter-spacing: 0.3px;
+  text-shadow: 0 0 22px rgba(212, 175, 55, 0.25);
+}
+
+.page__quote {
+  margin-top: 14px;
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-size: 1.08rem;
+  color: var(--gold);
+  opacity: 0.85;
+}
+
+/* --- Dropzone --- */
+
+.dropzone {
+  border: 1.5px dashed var(--gold-dim);
+  border-radius: 10px;
+  padding: 46px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  background: rgba(212, 175, 55, 0.03);
+}
+
+.dropzone:hover,
+.dropzone.is-dragover {
+  border-color: var(--gold-bright);
+  background: rgba(212, 175, 55, 0.07);
+  box-shadow: 0 0 30px rgba(212, 175, 55, 0.12);
+}
+
+.dropzone:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 3px;
+}
+
+.dropzone__icon {
+  font-size: 2.6rem;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 0 10px rgba(212, 175, 55, 0.35));
+}
+
+.dropzone__label {
+  font-size: 1.04rem;
+  font-weight: 500;
+  color: var(--cream);
+  margin: 0 0 6px;
+}
+
+.dropzone__hint {
+  font-size: 0.85rem;
+  color: rgba(242, 236, 221, 0.5);
+  margin: 0;
+}
+
+.batch-status {
+  margin-top: 16px;
+  font-size: 0.9rem;
+  color: var(--gold);
+  min-height: 20px;
+  text-align: center;
+}
+
+/* --- Results --- */
+
+.results {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.invoice-card {
+  background: var(--card);
+  color: var(--cream);
+  border-radius: 10px;
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--gold);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+}
+
+.invoice-card.is-error {
+  border-left-color: var(--error);
+}
+
+.invoice-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.invoice-card__vendor {
+  font-family: 'Fraunces', serif;
+  font-size: 1.22rem;
+  font-weight: 500;
+  color: var(--gold-bright);
+}
+
+.invoice-card__filename {
+  font-size: 0.78rem;
+  color: rgba(242, 236, 221, 0.4);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.invoice-card__meta {
+  font-size: 0.88rem;
+  color: rgba(242, 236, 221, 0.65);
+  margin-bottom: 16px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.invoice-card__meta span strong { color: var(--cream); }
+
+table.line-items {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+  margin-bottom: 14px;
+}
+
+table.line-items th {
+  text-align: left;
+  font-size: 0.75rem;
+  color: rgba(242, 236, 221, 0.45);
+  font-weight: 500;
+  padding: 0 8px 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+table.line-items td {
+  padding: 7px 8px 7px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+table.line-items td.num,
+table.line-items th.num {
+  text-align: right;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.88rem;
+  white-space: nowrap;
+  color: var(--cream);
+}
+
+.totals {
+  margin-left: auto;
+  max-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 16px;
+}
+
+.totals__row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.92rem;
+}
+
+.totals__row.is-final {
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+  padding-top: 6px;
+  font-weight: 600;
+  color: var(--gold-bright);
+}
+
+.totals__row .num {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.totals__row.is-discount .num { color: var(--success); }
+.totals__row.is-surcharge .num { color: var(--gold); }
+
+.invoice-card__footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--gold-dim);
+  color: var(--gold-bright);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.download-btn:hover {
+  background: rgba(212, 175, 55, 0.1);
+  border-color: var(--gold-bright);
+}
+
+.invoice-card__error {
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.invoice-card__error .error-type {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
+  background: rgba(224, 104, 79, 0.15);
+  color: var(--error);
+  padding: 2px 7px;
+  border-radius: 3px;
+  margin-bottom: 8px;
+}
+
+.invoice-card__error pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.82rem;
+  background: rgba(255,255,255,0.03);
+  color: rgba(242, 236, 221, 0.75);
+  padding: 10px 12px;
+  border-radius: 4px;
+  margin: 0;
+}
