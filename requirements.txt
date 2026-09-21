@@ -1,0 +1,5 @@
+Flask
+PyMuPDF
+pydantic
+groq
+python-dotenv
