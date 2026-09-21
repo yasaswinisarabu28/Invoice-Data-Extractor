@@ -35,25 +35,35 @@ def process():
     def generate():
         # Each yielded line is one complete JSON object, so the browser
         # can parse and render results as they arrive, not all at once.
-        for result in process_files_stream(saved_paths):
-            if result["status"] == "success":
-                payload = {
-                    "filename": result["filename"],
-                    "status": "success",
-                    "invoice": result["invoice"].model_dump(),
-                    "index": result["index"],
-                    "total": result["total"],
-                }
-            else:
-                payload = {
-                    "filename": result["filename"],
-                    "status": "error",
-                    "error_type": result["error_type"],
-                    "message": result["message"],
-                    "index": result["index"],
-                    "total": result["total"],
-                }
-            yield json.dumps(payload) + "\n"
+        try:
+            for result in process_files_stream(saved_paths):
+                if result["status"] == "success":
+                    payload = {
+                        "filename": result["filename"],
+                        "status": "success",
+                        "invoice": result["invoice"].model_dump(),
+                        "index": result["index"],
+                        "total": result["total"],
+                    }
+                else:
+                    payload = {
+                        "filename": result["filename"],
+                        "status": "error",
+                        "error_type": result["error_type"],
+                        "message": result["message"],
+                        "index": result["index"],
+                        "total": result["total"],
+                    }
+                yield json.dumps(payload) + "\n"
+        except Exception as e:
+            # Last-resort safety net: if something goes wrong at the
+            # streaming layer itself, report it as one final error line
+            # instead of silently cutting the connection.
+            yield json.dumps({
+                "filename": "batch", "status": "error",
+                "error_type": "stream_failed", "message": str(e),
+                "index": 0, "total": 0,
+            }) + "\n"
 
     return Response(stream_with_context(generate()), mimetype="application/x-ndjson")
 

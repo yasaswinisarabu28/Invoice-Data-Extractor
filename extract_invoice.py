@@ -12,13 +12,20 @@ from dotenv import load_dotenv
 from extract import extract_pages  # reused from Project 1
 
 
+# =========================================================
+# GROQ SETUP
+# =========================================================
+
 load_dotenv()
-groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+groq_client = Groq(
+    api_key=os.getenv("GROQ_API_KEY")
+)
 
 
-# ---------------------------------------------------------
-# Schema
-# ---------------------------------------------------------
+# =========================================================
+# SCHEMA
+# =========================================================
 
 class LineItem(BaseModel):
     description: str
@@ -37,22 +44,31 @@ class Invoice(BaseModel):
     invoice_number: str
     invoice_date: str
     billed_to: str
+
     line_items: List[LineItem]
+
     subtotal: float
+
     adjustments: List[Adjustment] = []
+
     tax: Optional[float] = 0.0
+
     total_amount: float
 
     @model_validator(mode="after")
     def check_totals_add_up(self):
         """
-        Custom validation:
-        Checks whether the extracted invoice totals approximately
-        add up correctly.
+        Check whether:
+
+        subtotal + adjustments + tax = total_amount
+
+        A tolerance of 1.0 is allowed for small
+        rounding differences.
         """
 
         adjustments_total = sum(
-            a.amount for a in self.adjustments
+            adjustment.amount
+            for adjustment in self.adjustments
         )
 
         expected_total = (
@@ -61,150 +77,248 @@ class Invoice(BaseModel):
             + self.tax
         )
 
-        if abs(expected_total - self.total_amount) > 1.0:
+        if abs(
+            expected_total - self.total_amount
+        ) > 1.0:
+
             raise ValueError(
                 f"Totals don't add up: "
                 f"subtotal ({self.subtotal}) + "
                 f"adjustments ({adjustments_total}) + "
                 f"tax ({self.tax}) = {expected_total}, "
-                f"but total_amount is {self.total_amount}."
+                f"but total_amount is "
+                f"{self.total_amount}."
             )
 
         return self
 
 
-# ---------------------------------------------------------
-# Extraction Prompt
-# ---------------------------------------------------------
+# =========================================================
+# EXTRACTION PROMPT
+# =========================================================
 
-def build_extraction_prompt(raw_text: str) -> tuple[str, str]:
+def build_extraction_prompt(
+    raw_text: str
+) -> tuple[str, str]:
+
     """
-    Builds the system + user prompt that instructs the LLM
-    to output ONLY valid JSON matching the Invoice schema.
+    Builds the system and user prompts.
+
+    The model is instructed to return ONLY JSON.
     """
 
     system_prompt = (
-        "You extract structured data from invoice/receipt text. "
-        "Respond with ONLY a valid JSON object — no explanations, "
-        "no markdown code fences, no extra text before or after. "
+
+        "You extract structured data from "
+        "invoice/receipt text. "
+
+        "Respond with ONLY a valid JSON object — "
+        "no explanations, no markdown code fences, "
+        "no extra text before or after. "
+
         "The JSON must match this exact structure:\n\n"
 
         "{\n"
+
         '  "vendor_name": string,\n'
+
         '  "invoice_number": string,\n'
+
         '  "invoice_date": string,\n'
+
         '  "billed_to": string,\n'
 
         '  "line_items": [\n'
+
         "    {\n"
+
         '      "description": string,\n'
+
         '      "quantity": number,\n'
+
         '      "unit_price": number,\n'
+
         '      "total": number\n'
+
         "    }\n"
+
         "  ],\n"
 
         '  "subtotal": number,\n'
 
         '  "adjustments": [\n'
+
         "    {\n"
+
         '      "label": string,\n'
+
         '      "amount": number\n'
+
         "    }\n"
+
         "  ],\n"
 
         '  "tax": number,\n'
+
         '  "total_amount": number\n'
+
         "}\n\n"
 
-        "The \"adjustments\" array is for anything that changes "
-        "the total besides tax and the line items themselves — "
-        "discounts, shipping charges, rounding, service fees, etc. "
+        # -------------------------------------------------
+        # Adjustment rules
+        # -------------------------------------------------
+
+        "The \"adjustments\" array is for anything "
+        "that changes the total besides tax and the "
+        "line items themselves — discounts, shipping "
+        "charges, rounding, service fees, etc. "
 
         "Use a clear label for each one. "
 
         "IMPORTANT sign convention: "
-        "a discount (anything that REDUCES the total) must be "
-        "a NEGATIVE number; a surcharge or fee (anything that "
-        "INCREASES the total) must be a POSITIVE number. "
 
-        "If there are no such adjustments, use an empty array [].\n\n"
+        "a discount (anything that REDUCES the total) "
+        "must be a NEGATIVE number; "
 
-        "IMPORTANT: Do NOT invent discounts, fees, shipping charges, "
-"rounding adjustments, taxes, invoice numbers, dates, or other "
-"values that are not explicitly supported by the invoice text. "
+        "a surcharge or fee (anything that INCREASES "
+        "the total) must be a POSITIVE number. "
 
-"If no discount, fee, shipping charge, rounding adjustment, "
-"or other adjustment is explicitly shown, use an empty array []. "
+        "If there are no such adjustments, use "
+        "an empty array [].\n\n"
 
-"If a numeric field is genuinely missing, use 0. "
-"For missing text fields, use 'UNKNOWN'. "
+        # -------------------------------------------------
+        # Do not hallucinate values
+        # -------------------------------------------------
 
-"Before returning the JSON, verify the arithmetic: "
-"subtotal + adjustments + tax should equal total_amount. "
-"Do not create an adjustment just to make the arithmetic work."
+        "IMPORTANT: Do NOT invent discounts, fees, "
+        "shipping charges, rounding adjustments, taxes, "
+        "invoice numbers, dates, or other values that "
+        "are not explicitly supported by the invoice text. "
+
+        "If no discount, fee, shipping charge, rounding "
+        "adjustment, or other adjustment is explicitly "
+        "shown, use an empty array []. "
+
+        "If a numeric field is genuinely missing, "
+        "use 0. "
+
+        "For missing text fields, use 'UNKNOWN'.\n\n"
+
+        # -------------------------------------------------
+        # Arithmetic
+        # -------------------------------------------------
+
+        "Before returning the JSON, verify the arithmetic: "
+
+        "subtotal + adjustments + tax should equal "
+        "total_amount. "
+
+        "Do NOT create an adjustment just to make "
+        "the arithmetic work. "
+
+        "Preserve the actual subtotal and total shown "
+        "on the invoice."
     )
 
-    user_prompt = f"Invoice text:\n\n{raw_text}"
+    user_prompt = (
+        f"Invoice text:\n\n{raw_text}"
+    )
 
     return system_prompt, user_prompt
 
 
-# ---------------------------------------------------------
-# Multi-Bill Detection
-# -------------------------------------------------------
+# =========================================================
+# MULTI-BILL DETECTION
+# =========================================================
 
 MULTI_BILL_PATTERN = re.compile(
+
     r'-{5,}\s*\n'
+
     r'BILL\s+\d+\s*\n'
+
     r'-{5,}\s*\n'
-    r'(.*?)(?='
+
+    r'(.*?)'
+
+    r'(?='
+
     r'\n{1,3}-{5,}\s*\n'
+
     r'BILL\s+\d+\s*\n'
+
     r'-{5,}\s*\n'
+
     r'|\Z)',
+
     re.DOTALL | re.IGNORECASE
 )
 
 
-def split_multi_bill_text(raw_text: str) -> list:
-    """
-    Detects whether raw_text contains multiple bills bundled
-    into one file.
+def split_multi_bill_text(
+    raw_text: str
+) -> list:
 
-    If multiple bills are found, each bill is returned separately.
-    Otherwise the complete text is returned as one item.
+    """
+    Detects whether raw_text contains multiple bills.
+
+    If multiple bills are found, each bill is returned
+    separately.
+
+    Otherwise the entire text is returned as one item.
     """
 
-    matches = MULTI_BILL_PATTERN.findall(raw_text)
+    matches = MULTI_BILL_PATTERN.findall(
+        raw_text
+    )
 
     if len(matches) >= 2:
-        return [m.strip() for m in matches]
+
+        return [
+            match.strip()
+            for match in matches
+        ]
 
     return [raw_text]
 
 
-# ---------------------------------------------------------
-# Read Input File
-# ---------------------------------------------------------
+# =========================================================
+# READ INPUT FILE
+# =========================================================
 
-def get_raw_text(file_path: str) -> str:
+def get_raw_text(
+    file_path: str
+) -> str:
+
     """
-    Returns raw text from PDF or TXT files.
+    Returns raw text from:
 
-    PDF -> extracted using extract_pages()
-    TXT -> read directly
+    .pdf -> PyMuPDF extraction
+    .txt -> direct file reading
     """
 
-    ext = os.path.splitext(file_path)[1].lower()
+    ext = os.path.splitext(
+        file_path
+    )[1].lower()
+
+    # -----------------------------------------------------
+    # PDF
+    # -----------------------------------------------------
 
     if ext == ".pdf":
 
-        pages = extract_pages(file_path)
+        pages = extract_pages(
+            file_path
+        )
 
         return "\n".join(
-            text for _, text in pages
+            text
+            for _, text in pages
         )
+
+    # -----------------------------------------------------
+    # TXT
+    # -----------------------------------------------------
 
     elif ext == ".txt":
 
@@ -212,9 +326,13 @@ def get_raw_text(file_path: str) -> str:
             file_path,
             "r",
             encoding="utf-8"
-        ) as f:
+        ) as file:
 
-            return f.read()
+            return file.read()
+
+    # -----------------------------------------------------
+    # Unsupported
+    # -----------------------------------------------------
 
     else:
 
@@ -224,62 +342,74 @@ def get_raw_text(file_path: str) -> str:
         )
 
 
-# ---------------------------------------------------------
-# Groq Extraction With Retry
-# ---------------------------------------------------------
+# =========================================================
+# GROQ CALL WITH RATE-LIMIT RETRY
+# =========================================================
 
-def extract_invoice_from_text(raw_text: str) -> Invoice:
+def call_groq(
+    system_prompt: str,
+    user_prompt: str,
+    temperature: float = 0.1
+):
+
     """
-    Sends invoice text to Groq and converts the response
-    into a validated Invoice object.
+    Sends a request to Groq.
 
-    Includes automatic retry handling for Groq 429
-    rate-limit errors.
+    If Groq returns HTTP 429, wait and retry.
+
+    Retry schedule:
+
+        attempt 1 -> wait 10 seconds
+        attempt 2 -> wait 20 seconds
+        attempt 3 -> wait 30 seconds
+        attempt 4 -> final attempt
     """
 
-    system_prompt, user_prompt = build_extraction_prompt(
-        raw_text
-    )
-
-    # Maximum number of attempts
     max_retries = 4
 
-    response = None
-
-    for attempt in range(max_retries):
+    for attempt in range(
+        max_retries
+    ):
 
         try:
 
             print(
-                f"Sending invoice to Groq "
-                f"(attempt {attempt + 1}/{max_retries})..."
+                f"Sending request to Groq "
+                f"(attempt {attempt + 1}/"
+                f"{max_retries})..."
             )
 
-            response = groq_client.chat.completions.create(
+            response = (
+                groq_client
+                .chat
+                .completions
+                .create(
 
-                model="openai/gpt-oss-120b",
+                    model="openai/gpt-oss-120b",
 
-                messages=[
-                    {
-                        "role": "system",
-                        "content": system_prompt
-                    },
-                    {
-                        "role": "user",
-                        "content": user_prompt
-                    },
-                ],
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": system_prompt
+                        },
+                        {
+                            "role": "user",
+                            "content": user_prompt
+                        }
+                    ],
 
-                temperature=0.1,
+                    temperature=temperature
+                )
             )
 
-            # Request succeeded
-            break
+            return response
 
-        except RateLimitError as e:
+        except RateLimitError:
 
-            # If this was the final attempt,
-            # allow the error to go to the caller.
+            # ---------------------------------------------
+            # Last attempt
+            # ---------------------------------------------
+
             if attempt == max_retries - 1:
 
                 print(
@@ -289,158 +419,366 @@ def extract_invoice_from_text(raw_text: str) -> Invoice:
 
                 raise
 
-            # Increasing wait time
-            wait_time = 10 * (attempt + 1)
+            # ---------------------------------------------
+            # Wait before retry
+            # ---------------------------------------------
+
+            wait_time = 10 * (
+                attempt + 1
+            )
 
             print(
                 f"Groq rate limit reached (429). "
-                f"Waiting {wait_time} seconds before retry..."
+                f"Waiting {wait_time} seconds "
+                f"before retry..."
             )
 
-            time.sleep(wait_time)
+            time.sleep(
+                wait_time
+            )
 
-        except Exception:
-            # Other errors should not be treated
-            # as rate-limit errors.
-            raise
+
+# =========================================================
+# CLEAN MODEL JSON
+# =========================================================
+
+def clean_json_response(
+    raw_response: str
+) -> str:
+
+    """
+    Removes markdown code fences if the model
+    accidentally returns them.
+    """
+
+    raw_response = raw_response.strip()
+
+    if raw_response.startswith("```"):
+
+        raw_response = raw_response.strip(
+            "`"
+        )
+
+        if raw_response.startswith(
+            "json"
+        ):
+
+            raw_response = (
+                raw_response[4:]
+                .strip()
+            )
+
+    return raw_response
+
+
+# =========================================================
+# MAIN INVOICE EXTRACTION
+# =========================================================
+
+def extract_invoice_from_text(
+    raw_text: str
+) -> Invoice:
+
+    """
+    Main invoice extraction function.
+
+    Flow:
+
+        Invoice text
+             ↓
+        Groq extraction
+             ↓
+        JSON
+             ↓
+        Pydantic validation
+             ↓
+        ┌───────────────┐
+        │               │
+       valid          invalid
+        │               │
+        ↓               ↓
+        ✅        Correction request
+                         ↓
+                       Groq
+                         ↓
+                    Validation
+                         ↓
+                         ✅
+    """
 
     # -----------------------------------------------------
-    # Read model response
+    # Build initial prompt
     # -----------------------------------------------------
 
-    raw_json = response.choices[0].message.content.strip()
+    system_prompt, user_prompt = (
+        build_extraction_prompt(
+            raw_text
+        )
+    )
 
-    # Defensive:
-    # Remove markdown code fences if the model adds them.
-    if raw_json.startswith("```"):
+    # -----------------------------------------------------
+    # FIRST GROQ REQUEST
+    # -----------------------------------------------------
 
-        raw_json = raw_json.strip("`")
+    response = call_groq(
+        system_prompt,
+        user_prompt,
+        temperature=0.1
+    )
 
-        if raw_json.startswith("json"):
+    # -----------------------------------------------------
+    # Read response
+    # -----------------------------------------------------
 
-            raw_json = raw_json[4:].strip()
+    raw_json = (
+        response
+        .choices[0]
+        .message
+        .content
+        .strip()
+    )
 
-    data = json.loads(raw_json)
+    raw_json = clean_json_response(
+        raw_json
+    )
 
-try:
-    return Invoice(**data)
+    # -----------------------------------------------------
+    # Convert to Python dictionary
+    # -----------------------------------------------------
 
-except ValidationError as e:
-    print("Invoice validation failed.")
-    print("Retrying extraction with arithmetic correction...")
+    data = json.loads(
+        raw_json
+    )
 
-    correction_prompt = f"""
-The previous extraction contained an arithmetic inconsistency.
+    # -----------------------------------------------------
+    # FIRST VALIDATION
+    # -----------------------------------------------------
 
-Original invoice text:
+    try:
+
+        invoice = Invoice(
+            **data
+        )
+
+        return invoice
+
+    except ValidationError as validation_error:
+
+        print()
+        print(
+            "Invoice validation failed."
+        )
+
+        print(
+            "Retrying extraction with "
+            "arithmetic correction..."
+        )
+
+        # -------------------------------------------------
+        # CORRECTION PROMPT
+        # -------------------------------------------------
+
+        correction_prompt = f"""
+
+The previous extraction of this invoice
+contained an arithmetic inconsistency.
+
+ORIGINAL INVOICE TEXT:
 {raw_text}
 
-Previous extracted JSON:
-{json.dumps(data, indent=2)}
 
-Validation error:
-{str(e)}
+PREVIOUS EXTRACTED JSON:
+{json.dumps(
+    data,
+    indent=2
+)}
+
+
+VALIDATION ERROR:
+{str(validation_error)}
+
 
 Extract the invoice again.
 
-IMPORTANT:
-- Do NOT invent discounts, fees, shipping charges, rounding,
-  or other adjustments.
-- Only include an adjustment if it is explicitly present
-  in the invoice text.
-- If there is no explicit adjustment, use [].
-- Check that:
+IMPORTANT RULES:
 
-  subtotal + adjustments + tax = total_amount
+1. Do NOT invent discounts.
 
-- Return ONLY valid JSON.
-- Do not include explanations.
+2. Do NOT invent fees.
+
+3. Do NOT invent shipping charges.
+
+4. Do NOT invent rounding adjustments.
+
+5. Do NOT invent taxes.
+
+6. Only include an adjustment if it is
+   explicitly present in the original
+   invoice text.
+
+7. If there is no explicit adjustment,
+   use:
+
+   "adjustments": []
+
+8. Do NOT create an adjustment simply
+   to make the arithmetic work.
+
+9. Preserve the actual subtotal shown
+   on the invoice.
+
+10. Preserve the actual total shown
+    on the invoice.
+
+11. Preserve the actual tax shown
+    on the invoice.
+
+12. Check:
+
+    subtotal
+    + adjustments
+    + tax
+    =
+    total_amount
+
+13. If the invoice has a rounding
+    difference, include it ONLY if
+    the rounding amount is explicitly
+    shown.
+
+14. If a numeric field is genuinely
+    missing, use 0.
+
+15. If a text field is genuinely
+    missing, use "UNKNOWN".
+
+16. Return ONLY valid JSON.
+
+17. Do NOT return markdown.
+
+18. Do NOT return explanations.
+
+Return the corrected JSON now.
 """
 
-    response = groq_client.chat.completions.create(
-        model="openai/gpt-oss-120b",
-        messages=[
-            {
-                "role": "system",
-                "content": system_prompt
-            },
-            {
-                "role": "user",
-                "content": correction_prompt
-            }
-        ],
-        temperature=0.0,
-    )
+        # -------------------------------------------------
+        # SECOND GROQ REQUEST
+        #
+        # IMPORTANT:
+        # This also uses call_groq(), so it also
+        # gets 429 retry protection.
+        # -------------------------------------------------
 
-    corrected_json = response.choices[0].message.content.strip()
+        correction_response = call_groq(
+            system_prompt,
+            correction_prompt,
+            temperature=0.0
+        )
 
-    if corrected_json.startswith("```"):
-        corrected_json = corrected_json.strip("`")
+        # -------------------------------------------------
+        # Read corrected response
+        # -------------------------------------------------
 
-        if corrected_json.startswith("json"):
-            corrected_json = corrected_json[4:].strip()
+        corrected_json = (
+            correction_response
+            .choices[0]
+            .message
+            .content
+            .strip()
+        )
 
-    corrected_data = json.loads(corrected_json)
+        corrected_json = clean_json_response(
+            corrected_json
+        )
 
-    return Invoice(**corrected_data)
+        # -------------------------------------------------
+        # Convert corrected JSON
+        # -------------------------------------------------
 
-# ---------------------------------------------------------
-# Single File Extraction
-# ---------------------------------------------------------
+        corrected_data = json.loads(
+            corrected_json
+        )
 
-def extract_invoice(file_path: str) -> Invoice:
+        # -------------------------------------------------
+        # Final validation
+        # -------------------------------------------------
+
+        return Invoice(
+            **corrected_data
+        )
+
+
+# =========================================================
+# SINGLE FILE EXTRACTION
+# =========================================================
+
+def extract_invoice(
+    file_path: str
+) -> Invoice:
+
     """
     Full single-file pipeline:
 
-    File
-      ↓
-    Raw text
-      ↓
-    Groq
-      ↓
-    JSON
-      ↓
-    Pydantic validation
+        File
+          ↓
+        Raw text
+          ↓
+        Groq
+          ↓
+        JSON
+          ↓
+        Pydantic
+          ↓
+        Invoice
     """
 
-    raw_text = get_raw_text(file_path)
+    raw_text = get_raw_text(
+        file_path
+    )
 
-    return extract_invoice_from_text(raw_text)
+    return extract_invoice_from_text(
+        raw_text
+    )
 
 
-# ---------------------------------------------------------
-# Streaming Batch Processing
-# ---------------------------------------------------------
+# =========================================================
+# STREAMING BATCH PROCESSING
+# =========================================================
 
 def process_files_stream(
     file_paths: list,
     max_workers: int = 1
 ):
+
     """
-    Processes invoices and yields results as they finish.
+    Processes invoices and yields results
+    as they finish.
 
-    IMPORTANT:
-    max_workers is set to 1 by default so that only one
-    Groq request is sent at a time.
+    max_workers=1 is intentional.
 
-    This prevents multiple simultaneous requests from
-    exceeding the Groq TPM rate limit.
+    This prevents several Groq requests from
+    being sent simultaneously and reduces
+    the chance of hitting the TPM rate limit.
     """
 
     # -----------------------------------------------------
-    # Step 1:
-    # Build flat task list
+    # STEP 1:
+    # Build task list
     # -----------------------------------------------------
 
     tasks = []
 
     for path in file_paths:
 
-        filename = os.path.basename(path)
+        filename = os.path.basename(
+            path
+        )
 
         try:
 
-            raw_text = get_raw_text(path)
+            raw_text = get_raw_text(
+                path
+            )
 
         except ValueError as e:
 
@@ -455,9 +793,21 @@ def process_files_stream(
 
             continue
 
-        bill_texts = split_multi_bill_text(raw_text)
+        # ---------------------------------------------
+        # Split multi-bill files
+        # ---------------------------------------------
 
-        is_batch_file = len(bill_texts) > 1
+        bill_texts = split_multi_bill_text(
+            raw_text
+        )
+
+        is_batch_file = (
+            len(bill_texts) > 1
+        )
+
+        # ---------------------------------------------
+        # Create individual tasks
+        # ---------------------------------------------
 
         for i, bill_text in enumerate(
             bill_texts,
@@ -488,11 +838,8 @@ def process_files_stream(
     completed = 0
 
     # -----------------------------------------------------
-    # Step 2:
-    # Run extraction tasks
-    #
-    # max_workers=1 prevents multiple Groq calls
-    # from happening simultaneously.
+    # STEP 2:
+    # Run tasks
     # -----------------------------------------------------
 
     with ThreadPoolExecutor(
@@ -503,7 +850,10 @@ def process_files_stream(
 
         for task in tasks:
 
-            # Already-known file errors
+            # ---------------------------------------------
+            # Already-known error
+            # ---------------------------------------------
+
             if task[0] == "error":
 
                 completed += 1
@@ -514,12 +864,13 @@ def process_files_stream(
                     "error_type": task[2],
                     "message": task[3],
                     "index": completed,
-                    "total": total,
+                    "total": total
                 }
 
                 continue
 
             label = task[1]
+
             bill_text = task[2]
 
             future = executor.submit(
@@ -527,7 +878,9 @@ def process_files_stream(
                 bill_text
             )
 
-            future_to_label[future] = label
+            future_to_label[
+                future
+            ] = label
 
         # -------------------------------------------------
         # Process completed tasks
@@ -537,7 +890,9 @@ def process_files_stream(
             future_to_label
         ):
 
-            label = future_to_label[future]
+            label = future_to_label[
+                future
+            ]
 
             completed += 1
 
@@ -550,18 +905,27 @@ def process_files_stream(
                     "status": "success",
                     "invoice": invoice,
                     "index": completed,
-                    "total": total,
+                    "total": total
                 }
 
+            # ---------------------------------------------
+            # Invalid JSON
+            # ---------------------------------------------
+
             except json.JSONDecodeError as e:
+
                 yield {
                     "filename": label,
                     "status": "error",
                     "error_type": "invalid_json",
                     "message": str(e),
                     "index": completed,
-                    "total": total,
+                    "total": total
                 }
+
+            # ---------------------------------------------
+            # Pydantic validation
+            # ---------------------------------------------
 
             except ValidationError as e:
 
@@ -571,8 +935,12 @@ def process_files_stream(
                     "error_type": "validation_failed",
                     "message": str(e),
                     "index": completed,
-                    "total": total,
+                    "total": total
                 }
+
+            # ---------------------------------------------
+            # Other errors
+            # ---------------------------------------------
 
             except Exception as e:
 
@@ -582,49 +950,72 @@ def process_files_stream(
                     "error_type": "extraction_failed",
                     "message": str(e),
                     "index": completed,
-                    "total": total,
+                    "total": total
                 }
 
 
-# ---------------------------------------------------------
-# Normal Batch Processing
-# ---------------------------------------------------------
+# =========================================================
+# NORMAL BATCH PROCESSING
+# =========================================================
 
-def process_files(file_paths: list) -> list:
+def process_files(
+    file_paths: list
+) -> list:
+
     """
-    Batch pipeline.
+    Processes files one by one.
 
-    Processes each invoice one at a time.
-
-    One failed invoice does not stop the remaining invoices.
+    One failed invoice does not stop
+    the remaining invoices.
     """
 
     results = []
 
+    # -----------------------------------------------------
+    # Process each file
+    # -----------------------------------------------------
+
     for path in file_paths:
 
-        filename = os.path.basename(path)
+        filename = os.path.basename(
+            path
+        )
 
         try:
 
-            raw_text = get_raw_text(path)
+            raw_text = get_raw_text(
+                path
+            )
 
         except ValueError as e:
 
-            results.append({
-                "filename": filename,
-                "status": "error",
-                "error_type": "unsupported_format",
-                "message": str(e),
-            })
+            results.append(
+                {
+                    "filename": filename,
+                    "status": "error",
+                    "error_type":
+                        "unsupported_format",
+                    "message": str(e)
+                }
+            )
 
             continue
+
+        # -------------------------------------------------
+        # Split multi-bill file
+        # -------------------------------------------------
 
         bill_texts = split_multi_bill_text(
             raw_text
         )
 
-        is_batch_file = len(bill_texts) > 1
+        is_batch_file = (
+            len(bill_texts) > 1
+        )
+
+        # -------------------------------------------------
+        # Process each bill
+        # -------------------------------------------------
 
         for i, bill_text in enumerate(
             bill_texts,
@@ -643,49 +1034,62 @@ def process_files(file_paths: list) -> list:
 
             try:
 
-                invoice = extract_invoice_from_text(
-                    bill_text
+                invoice = (
+                    extract_invoice_from_text(
+                        bill_text
+                    )
                 )
 
-                results.append({
-                    "filename": label,
-                    "status": "success",
-                    "invoice": invoice,
-                })
+                results.append(
+                    {
+                        "filename": label,
+                        "status": "success",
+                        "invoice": invoice
+                    }
+                )
 
             except json.JSONDecodeError as e:
 
-                results.append({
-                    "filename": label,
-                    "status": "error",
-                    "error_type": "invalid_json",
-                    "message": str(e),
-                })
+                results.append(
+                    {
+                        "filename": label,
+                        "status": "error",
+                        "error_type":
+                            "invalid_json",
+                        "message": str(e)
+                    }
+                )
 
             except ValidationError as e:
 
-                results.append({
-                    "filename": label,
-                    "status": "error",
-                    "error_type": "validation_failed",
-                    "message": str(e),
-                })
+                results.append(
+                    {
+                        "filename": label,
+                        "status": "error",
+                        "error_type":
+                            "validation_failed",
+                        "message": str(e)
+                    }
+                )
 
             except Exception as e:
 
-                results.append({
-                    "filename": label,
-                    "status": "error",
-                    "error_type": "extraction_failed",
-                    "message": str(e),
-                })
+                results.append(
+                    {
+                        "filename": label,
+                        "status": "error",
+                        "error_type":
+                            "extraction_failed",
+                        "message": str(e)
+                    }
+                )
 
     return results
 
 
-# ---------------------------------------------------------
-# Test
-# ---------------------------------------------------------
+# =========================================================
+# DIRECT TEST
+# =========================================================
 
 if __name__ == "__main__":
 
@@ -694,22 +1098,25 @@ if __name__ == "__main__":
         "messy_invoice.pdf"
     ]
 
-    results = process_files(files)
+    results = process_files(
+        files
+    )
 
-    for r in results:
+    for result in results:
 
         print(
-            f"\n=== {r['filename']} ==="
+            f"\n=== {result['filename']} ==="
         )
 
-        if r["status"] == "success":
+        if result["status"] == "success":
 
             print(
                 "Extraction succeeded:\n"
             )
 
             print(
-                r["invoice"].model_dump_json(
+                result["invoice"]
+                .model_dump_json(
                     indent=2
                 )
             )
@@ -717,9 +1124,10 @@ if __name__ == "__main__":
         else:
 
             print(
-                f"Failed ({r['error_type']}):"
+                f"Failed "
+                f"({result['error_type']}):"
             )
 
             print(
-                r["message"]
+                result["message"]
             )
